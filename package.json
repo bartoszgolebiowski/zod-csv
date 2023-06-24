@@ -1,0 +1,41 @@
+{
+  "name": "zod-csv",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/zcsv.umd.cjs",
+  "module": "./dist/zcsv.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/zcsv.js",
+      "require": "./dist/zcsv.umd.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bartoszgolebiowski/zod-csv"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "watch": "vitest --watch"
+  },
+  "peerDependencies": {
+    "zod": "^3.11.x"
+  },
+  "devDependencies": {
+    "@types/node": "^20.3.1",
+    "typescript": "^5.1.3",
+    "vite": "^4.3.9",
+    "vite-plugin-dts": "^2.3.0",
+    "vitest": "^0.32.2",
+    "zod": "^3.21.4"
+  }
+}
