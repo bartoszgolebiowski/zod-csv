@@ -122,7 +122,7 @@ type Result<T extends z.ZodType> = {
     } | undefined
 }
 
-it('example usage file input, ()=>{
+it('example usage file input', ()=>{
     const csv = new File(
       [`name,age\nJohn,20\nDoe,30`;],
       "test.csv",
