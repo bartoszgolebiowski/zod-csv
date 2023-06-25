@@ -12,6 +12,13 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "keywords": [
+    "zod",
+    "csv",
+    "validation",
+    "schema",
+    "typescript"
+  ],
   "files": [
     "dist"
   ],

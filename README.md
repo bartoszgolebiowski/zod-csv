@@ -9,7 +9,7 @@ The content from the CSV file is as a string. This library parses this content, 
 # Example
 
 ```ts
-import { zcsv, parseCSVContent, parseCSV} from "zod-form-data";
+import { zcsv, parseCSVContent, parseCSV } from "zod-csv";
 import { z } from "zod"
 
 it("string example", () => {
