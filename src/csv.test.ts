@@ -14,11 +14,12 @@ describe("csv content parsing", () => {
         });
         const result = parseCSVContent(csv, schema1);
         expect(result.header).toEqual(["name", "age"]);
-        result.allRows
         expect(result.validRows).toStrictEqual([
             { name: "John", age: 20 },
             { name: "Doe", age: 30 },
         ]);
+        expect(result.success).toEqual(true);
+        //@ts-expect-error - when success is true, errors are undefined
         expect(result.errors).toEqual(undefined);
     });
 
@@ -36,6 +37,8 @@ describe("csv content parsing", () => {
             { name: "John", age: 20 },
             { name: "Doe", age: 30 },
         ]);
+        expect(result.success).toEqual(false);
+        //@ts-expect-error - when success is false, errors are defined
         expect(result.errors).toEqual({
             header: {
                 "errorCode": "MISSING_COLUMN",
@@ -59,6 +62,8 @@ Doe,30
             { name: "John", age: 20 },
             { name: "Doe", age: 30 },
         ]);
+        expect(result.success).toEqual(false);
+        //@ts-expect-error - when success is false, errors are defined
         expect(result.errors).toBeDefined()
         //@ts-expect-error - we know that errors are defined
         const thirdRow = result.errors.rows['2'];
@@ -129,6 +134,8 @@ Doe,30
             { name: "Doe", age: 30, description: undefined },
             { name: "Bill", age: 30, description: undefined },
         ]);
+        expect(result.success).toEqual(true);
+        //@ts-expect-error - when success is true, errors are undefined
         expect(result.errors).toEqual(undefined);
     });
 
@@ -150,6 +157,8 @@ Doe,30
             { name: "Doe", age: 30, description: "" },
             { name: "Bill", age: 30, description: "" },
         ]);
+        expect(result.success).toEqual(true);
+        //@ts-expect-error - when success is true, errors are undefined
         expect(result.errors).toEqual(undefined);
     });
 
@@ -171,6 +180,8 @@ Doe,30
             { name: "Doe", age: undefined, description: "Test2" },
             { name: "Bill", age: 30, description: "" },
         ]);
+        expect(result.success).toEqual(true);
+        //@ts-expect-error - when success is true, errors are undefined
         expect(result.errors).toEqual(undefined);
     });
 
@@ -222,6 +233,8 @@ Doe,30
                 assignedTo: "John@test.pl",
             },
         ]);
+        expect(result.success).toEqual(true);
+        //@ts-expect-error - when success is true, errors are undefined
         expect(result.errors).toEqual(undefined);
     });
 
@@ -320,6 +333,8 @@ Doe,30
                 dueDate: new Date("2020-01-02"),
             },
         ]);
+        expect(result.success).toEqual(true);
+        //@ts-expect-error - when success is true, errors are undefined
         expect(result.errors).toEqual(undefined);
     });
 
@@ -355,6 +370,7 @@ Doe,30
                 dueDate: new Date("2020-01-02"),
             },
         ]);
+        expect(result.success).toEqual(false);
         //@ts-expect-error - we want to check if error is correct
         const errors = result.errors.rows!;
         const firstRow = errors["0"];

@@ -125,21 +125,41 @@ const getCSVContent = (csv: File) => {
 };
 
 type Result<T extends z.ZodType> = {
+    success: true,
     header: string[],
     allRows: Record<string, string | undefined>[],
-    validRows: z.infer<T>,
+    validRows: z.infer<T>[],
+} | {
+    success: false,
+    header: string[],
+    allRows: Record<string, string | undefined>[],
+    validRows: z.infer<T>[],
     errors: {
-        header?: { errorCode: keyof typeof ERROR_CODES['HEADER'] , header: string},
+        header?: { errorCode: keyof typeof ERROR_CODES['HEADER'], header: string },
         rows?: Record<string, z.ZodError<T>>
-    } | undefined
+    }
 }
 
-export const parseCSVContent = <T extends z.ZodType>(csvContent: string, schema: T): Result<T> => ({
-    header: getHeadersFromCSV(csvContent),
-    allRows: getRowsFromCSVRaw(csvContent, schema),
-    validRows: getRowsFromCSV(csvContent, schema),
-    errors: getCSVErrors(csvContent, schema) as Result<T>['errors']
-})
+export const parseCSVContent = <T extends z.ZodType>(csvContent: string, schema: T): Result<T> => {
+    const errors = getCSVErrors(csvContent, schema);
+
+    if (errors) {
+        return {
+            success: false,
+            header: getHeadersFromCSV(csvContent),
+            allRows: getRowsFromCSVRaw(csvContent, schema),
+            validRows: getRowsFromCSV(csvContent, schema),
+            errors: errors as Extract<Result<T>, { status: false }>['errors']
+        }
+    }
+
+    return {
+        success: true,
+        header: getHeadersFromCSV(csvContent),
+        allRows: getRowsFromCSVRaw(csvContent, schema),
+        validRows: getRowsFromCSV(csvContent, schema),
+    }
+}
 
 export const parseCSV = async <T extends z.ZodType>(csv: File, schema: T): Promise<Result<T>> => {
     const csvContent = await getCSVContent(csv);
