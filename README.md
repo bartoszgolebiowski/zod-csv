@@ -31,8 +31,14 @@ it("string example", () => {
         { name: "John", age: 20 },
         { name: "Doe", age: 30 },
     ]);
-    // errors are returned as zod errors
-    expect(result.errors).toBe(undefined)
+    if(result.success){
+        // typescript will scream if you try to access the errors property
+        expect(result.errors).toBe(undefined)
+    }
+    if(!result.success){
+        // typescript will not scream if you try to access the errors property
+        expect(result.errors).not.toBe(undefined)
+    }
 });
 
 it("file example", async () => {
@@ -62,8 +68,14 @@ it("file example", async () => {
         { name: "John", age: 20 },
         { name: "Doe", age: 30 },
     ]);
-    // errors are returned as zod errors
-    expect(result.errors).toBe(undefined)
+    if(result.success){
+        // typescript will narrow the type, so typescript will scream if you try to access the errors property
+        expect(result.errors).toBe(undefined)
+    }
+    if(!result.success){
+        // typescript will narrow the type, so if success is false, typescript will allow you to access the errors property
+        expect(result.errors).not.toBe(undefined)
+    }
 });
 ```
 
@@ -82,13 +94,19 @@ npm install zod-csv
 Function to parse CSV data from a string. The first row of the CSV data is expected to be the header.
 ```ts
 type Result<T extends z.ZodType> = {
+    success: true,
     header: string[],
     allRows: Record<string, string | undefined>[],
-    validRows: z.infer<T>,
+    validRows: z.infer<T>[],
+} | {
+    success: false,
+    header: string[],
+    allRows: Record<string, string | undefined>[],
+    validRows: z.infer<T>[],
     errors: {
-        header?: { errorCode: keyof typeof ERROR_CODES['HEADER'] , header: string},
+        header?: { errorCode: keyof typeof ERROR_CODES['HEADER'], header: string },
         rows?: Record<string, z.ZodError<T>>
-    } | undefined
+    }
 }
 
 it('example usage string input', () => {
@@ -113,13 +131,19 @@ Function to parse CSV data from a File object. The first row of the CSV data is 
 ```ts
 
 type Result<T extends z.ZodType> = {
+    success: true,
     header: string[],
     allRows: Record<string, string | undefined>[],
-    validRows: z.infer<T>,
+    validRows: z.infer<T>[],
+} | {
+    success: false,
+    header: string[],
+    allRows: Record<string, string | undefined>[],
+    validRows: z.infer<T>[],
     errors: {
-        header?: { errorCode: keyof typeof ERROR_CODES['HEADER'] , header: string},
+        header?: { errorCode: keyof typeof ERROR_CODES['HEADER'], header: string },
         rows?: Record<string, z.ZodError<T>>
-    } | undefined
+    }
 }
 
 it('example usage file input', ()=>{
