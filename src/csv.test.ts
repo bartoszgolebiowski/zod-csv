@@ -1,4 +1,4 @@
-import { parseCSVContent } from '.';
+import { parseCSVContent, parseCSVRow } from '.';
 import { describe, it, expect } from "vitest";
 import { zcsv } from ".";
 import { ZodError, z } from "zod";
@@ -385,4 +385,38 @@ Doe,30
         expect(sixthRow).toBeInstanceOf(ZodError);
         expect(seventhRow).toBeInstanceOf(ZodError);
     });
+})
+
+describe("parse single row agains schema", () => {
+    it('should return validated rows', () => {
+        const csv = [`John,20`, `Doe,30`];
+        const schema = z.object({
+            name: zcsv.string(),
+            age: zcsv.number(),
+        });
+
+        const result = csv.map(row => parseCSVRow(row, schema));
+        expect(result[0].success).toEqual(true);
+        //@ts-expect-error - when success is true, row is defined
+        expect(result[0].row).toEqual({ name: "John", age: 20 });
+        expect(result[1].success).toEqual(true);
+        //@ts-expect-error - when success is true, row is defined
+        expect(result[1].row).toEqual({ name: "Doe", age: 30 });
+    })
+
+    it('should return errors when row is not valid', () => {
+        const csv = [`John,20`, `Doe,3d0`];
+        const schema = z.object({
+            name: zcsv.string(),
+            age: zcsv.number(),
+        });
+
+        const result = csv.map(row => parseCSVRow(row, schema));
+        expect(result[0].success).toEqual(true);
+        //@ts-expect-error - when success is true, row is defined
+        expect(result[0].row).toEqual({ name: "John", age: 20 });
+        expect(result[1].success).toEqual(false);
+        //@ts-expect-error - when success is false, error is defined
+        expect(result[1].error[0]).toBeInstanceOf(ZodError)
+    })
 })

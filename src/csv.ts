@@ -59,7 +59,7 @@ const getCSVHeaderErrors = (csvContent: string, schema: z.ZodTypeAny) => {
     } as const
 }
 
-const getCSVBodyErrors = (csvContent: string, schema: z.ZodTypeAny) => {
+const getCSVBodyErrors = <T extends z.ZodTypeAny>(csvContent: string, schema: T) => {
     const rows = getRowsFromCSVRaw(csvContent, schema);
     return rows.reduce((errors, row, index) => {
         const parsed = schema.safeParse(row);
@@ -164,4 +164,28 @@ export const parseCSVContent = <T extends z.ZodType>(csvContent: string, schema:
 export const parseCSV = async <T extends z.ZodType>(csv: File, schema: T): Promise<Result<T>> => {
     const csvContent = await getCSVContent(csv);
     return parseCSVContent(csvContent, schema)
+}
+
+type ResultSingleRow<T extends z.ZodType> = {
+    success: true,
+    row: z.infer<T>,
+} | {
+    success: false,
+    error: z.ZodError<T>[]
+}
+
+export const parseCSVRow = <T extends z.ZodType>(row: string, schema: T): ResultSingleRow<T> => {
+    const enrichedRow = `\n${row}`
+    const errors = getCSVErrors(enrichedRow, schema);
+    if (errors?.rows) {
+        return {
+            success: false,
+            error: Object.values(errors.rows)
+        }
+    }
+
+    return {
+        success: true,
+        row: getRowsFromCSV(enrichedRow, schema)[0]
+    }
 }
