@@ -93,7 +93,7 @@ npm install zod-csv
 
 Function to parse CSV data from a string. The first row of the CSV data is expected to be the header.
 ```ts
-type Result<T extends z.ZodType> = {
+type ResultCSV<T extends z.ZodType> = {
     success: true,
     header: string[],
     allRows: Record<string, string | undefined>[],
@@ -118,10 +118,16 @@ it('example usage string input', () => {
     const result = parseCSVContent(csv, schema) 
 
     expect(result.header).toEqual(["name", "age"]);
-    expect(result.validRows).toStrictEqual([
-        { name: "John", age: 20 },
-        { name: "Doe", age: 30 },
-    ]);
+
+    if(result.success){
+        expect(result.validRows).toStrictEqual([
+            { name: "John", age: 20 },
+            { name: "Doe", age: 30 },
+        ]);
+    }
+    if(!result.success){
+        expect(result.errors).toBeDefined()
+    }
 });
 ```
 
@@ -130,7 +136,7 @@ it('example usage string input', () => {
 Function to parse CSV data from a File object. The first row of the CSV data is expected to be the header.
 ```ts
 
-type Result<T extends z.ZodType> = {
+type ResultCSV<T extends z.ZodType> = {
     success: true,
     header: string[],
     allRows: Record<string, string | undefined>[],
@@ -162,12 +168,58 @@ it('example usage file input', ()=>{
 
     const result = await parseCSV(csv, schema);
     expect(result.header).toEqual(["name", "age"]);
-    expect(result.validRows).toStrictEqual([
-        { name: "John", age: 20 },
-        { name: "Doe", age: 30 },
-    ]);
+    if(result.success){
+        expect(result.validRows).toStrictEqual([
+            { name: "John", age: 20 },
+            { name: "Doe", age: 30 },
+        ]);
+    }
+    if(!result.success){
+        expect(result.errors).toBeDefined()
+    }
 });
 
+```
+
+### `parseRow<T extends z.ZodType>(row: string, schema: T): ResultRow<T>`
+
+It can be used to parse a single row. It can be usefull when validating a stream of data.
+
+```ts
+
+type ResultRow<T extends z.ZodType> = {
+    success: true,
+    row: z.infer<T>,
+} | {
+    success: false,
+    errors: z.ZodError<T>[]
+}
+
+it('should return validated rows', () => {
+    const csv = [`John,20`, `Doe,30`];
+    const schema = z.object({
+        name: zcsv.string(),
+        age: zcsv.number(),
+    });
+    const result = csv.map(row => parseRow(row, schema));
+    expect(result[0].success).toEqual(true);
+    expect(result[0].row).toEqual({ name: "John", age: 20 });
+    expect(result[1].success).toEqual(true);
+    expect(result[1].row).toEqual({ name: "Doe", age: 30 });
+})
+
+it('should return errors when row is not valid', () => {
+    const csv = [`John,20`, `Doe,3d0`];
+    const schema = z.object({
+        name: zcsv.string(),
+        age: zcsv.number(),
+    });
+    const result = csv.map(row => parseRow(row, schema));
+    expect(result[0].success).toEqual(true);
+    expect(result[0].row).toEqual({ name: "John", age: 20 });
+    expect(result[1].success).toEqual(false);
+    expect(result[1].errors[0]).toBeInstanceOf(ZodError)
+})
 ```
 ## Schema Helpers
 
