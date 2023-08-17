@@ -1,4 +1,4 @@
-import { describe, it, expect} from "vitest";
+import { describe, it, expect } from "vitest";
 import { zcsv } from ".";
 import { z } from "zod";
 
@@ -267,22 +267,6 @@ describe('test helper matchers', () => {
             const s = zcsv.enum(z.enum(["a", "b"]));
             const result = s.safeParse("test")
             expect(result.success).toBe(false)
-        })
-
-        it.skip('should be valid when zod schema provided that set enum as optional enum, returns undefined, for the empty string input', () => {
-            const s = zcsv.enum(z.enum(["a", "b"]).optional());
-            const result = s.safeParse("")
-            expect(result.success).toBe(true)
-            //@ts-expect-error we will reach this line only if success is true
-            expect(result.data).toEqual(undefined)
-        })
-
-        it.skip('should be valid when zod schema provided that set enum as optional enum, returns default value, for the empty string input', () => {
-            const s = zcsv.enum(z.enum(["a", "b"]).default("a"));
-            const result = s.safeParse("")
-            expect(result.success).toBe(true)
-            //@ts-expect-error we will reach this line only if success is true
-            expect(result.data).toEqual("a")
         })
     })
 })

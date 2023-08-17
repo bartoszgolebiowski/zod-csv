@@ -1,4 +1,4 @@
-import { parseCSVContent } from '.';
+import { parseCSVContent, parseRow } from '.';
 import { describe, it, expect } from "vitest";
 import { zcsv } from ".";
 import { ZodError, z } from "zod";
@@ -385,4 +385,77 @@ Doe,30
         expect(sixthRow).toBeInstanceOf(ZodError);
         expect(seventhRow).toBeInstanceOf(ZodError);
     });
+})
+
+describe("parse single row against schema", () => {
+    it('should return validated rows', () => {
+        const csv = [`John,20`, `Doe,30`];
+        const schema = z.object({
+            name: zcsv.string(),
+            age: zcsv.number(),
+        });
+
+        const result = csv.map(row => parseRow(row, schema));
+        expect(result[0].success).toEqual(true);
+        //@ts-expect-error - when success is true, row is defined
+        expect(result[0].row).toEqual({ name: "John", age: 20 });
+        expect(result[1].success).toEqual(true);
+        //@ts-expect-error - when success is true, row is defined
+        expect(result[1].row).toEqual({ name: "Doe", age: 30 });
+    })
+
+    it('should return errors when row is not valid', () => {
+        const csv = [`John,20`, `Doe,3d0`];
+        const schema = z.object({
+            name: zcsv.string(),
+            age: zcsv.number(),
+        });
+
+        const result = csv.map(row => parseRow(row, schema));
+        expect(result[0].success).toEqual(true);
+        //@ts-expect-error - when success is true, row is defined
+        expect(result[0].row).toEqual({ name: "John", age: 20 });
+        expect(result[1].success).toEqual(false);
+        //@ts-expect-error - when success is false, error is defined
+        expect(result[1].errors[0]).toBeInstanceOf(ZodError)
+    })
+
+
+
+    it('should be valid when using generators', async () => {
+        const data = [
+            `,20`, `John,220`,          // invalid, valid
+            `Doe2,3d0`, `John,20`,      // invalid, valid
+            `John3,20`, `John,20`,      // valid, valid
+            `,3d0`, `John,20`,          // invalid, valid
+            `Doe5,3d0`, `John,20`,      // invalid, valid
+            `Doe6,30`, `John,230`,      // valid, valid
+            `Doe7,3d0`, `,20`,          // invalid, invalid
+            `Doe8,30`, `John,230`,      // valid, valid
+            `Doe9,3d0`, `John,28j0`,    // invalid, invalid
+        ]
+
+        async function* dataGenerator() {
+            let i = 0
+            while (i < data.length) {
+                await new Promise(resolve => setTimeout(resolve, 10));
+                yield data[i++];
+            }
+        }
+
+        const schema = z.object({
+            name: zcsv.string(z.string().min(1)),
+            age: zcsv.number(),
+        });
+
+        const generator = dataGenerator();
+        const results: ReturnType<typeof parseRow>[] = [];
+        for await (const data of generator) {
+            results.push(parseRow(data, schema));
+        }
+
+        expect(results.length).toEqual(data.length);
+        expect(results.filter(r => r.success).length).toEqual(10);
+        expect(results.filter(r => !r.success).length).toEqual(8);
+    })
 })
