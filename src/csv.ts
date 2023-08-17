@@ -25,7 +25,7 @@ const zodKeys = <T extends z.ZodTypeAny>(schema: T): string[] => {
     }
     if (schema instanceof z.ZodEffects) {
         const innerType = schema.innerType();
-        if (!innerType.shape) return []
+        if (!innerType.shape) return zodKeys(innerType);
         const entries = Object.entries(innerType.shape);
         return entries.flatMap(([key, value]) => {
             const nested = value instanceof z.ZodType ? zodKeys(value).map(subKey => `${key}.${subKey}`) : [];

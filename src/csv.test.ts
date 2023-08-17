@@ -459,3 +459,27 @@ describe("parse single row against schema", () => {
         expect(results.filter(r => !r.success).length).toEqual(8);
     })
 })
+
+describe('get inner ZodObject shape even when nested within ZodEffect', () => {
+    it('should validate csv content against nested ZodEffect schema', () => {
+        const schema = z.object({
+            name: zcsv.string(),
+            age: zcsv.number(),
+        }).refine(data => data.age > 0, {
+            message: "Age must be greater than 0",
+            path: ["age"],
+        })
+
+        Array.from({ length: 20 }).forEach((_, index) => {
+            schema.refine(data => data.age > index, {
+                message: "Age must be greater than index",
+                path: ["age"],
+            })
+        })
+
+        const result = parseCSVContent("name,age\ntest,132", schema);
+        expect(result.header).toEqual(["name", "age"]);
+        expect(result.success).toEqual(true);
+        expect(result.validRows).toStrictEqual([{ name: "test", age: 132 }]);
+    })
+})
