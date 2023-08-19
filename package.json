@@ -39,10 +39,15 @@
   },
   "devDependencies": {
     "@types/node": "^20.3.1",
+    "@types/papaparse": "^5.3.7",
     "typescript": "^5.1.3",
     "vite": "^4.3.9",
     "vite-plugin-dts": "^2.3.0",
     "vitest": "^0.32.2",
     "zod": "^3.21.4"
+  },
+  "dependencies": {
+    "csv_by_rfc": "^0.17.12",
+    "csv-string": "^4.1.1"
   }
 }

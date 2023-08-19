@@ -398,7 +398,7 @@ describe("parse single row against schema", () => {
         const result = csv.map(row => parseRow(row, schema));
         expect(result[0].success).toEqual(true);
         //@ts-expect-error - when success is true, row is defined
-        expect(result[0].row).toEqual({ name: "John", age: 20 });
+        expect(result[0].row!).toEqual({ name: "John", age: 20 });
         expect(result[1].success).toEqual(true);
         //@ts-expect-error - when success is true, row is defined
         expect(result[1].row).toEqual({ name: "Doe", age: 30 });
@@ -448,9 +448,8 @@ describe("parse single row against schema", () => {
             age: zcsv.number(),
         });
 
-        const generator = dataGenerator();
         const results: ReturnType<typeof parseRow>[] = [];
-        for await (const data of generator) {
+        for await (const data of dataGenerator()) {
             results.push(parseRow(data, schema));
         }
 
@@ -483,3 +482,100 @@ describe('get inner ZodObject shape even when nested within ZodEffect', () => {
         expect(result.validRows).toStrictEqual([{ name: "test", age: 132 }]);
     })
 })
+
+it('parse csv content with some restricted characters like line breaks (CRLF), double quotes, and commas, should be enclosed in double-quotes', () => {
+    const schema = z.object({
+        field1: zcsv.string(z.string().optional().default("")),
+        field2: zcsv.string(z.string().optional().default("")),
+        field3: zcsv.string(z.string().optional().default("")),
+    })
+
+    const csv = `field1,field2,field3
+\"a\r\naa\",\"b\"\"b\"\"b\",\"c,cc\"
+\"aaa\",\"bbb\",\"cc c\"
+aaa , bbb, c  cc
+aaa,,ccc
+\"aaa\",\"\",\"ccc\"
+`
+
+    const result = parseCSVContent(csv, schema);
+    expect(result.header).toEqual(["field1", "field2", "field3"]);
+    expect(result.success).toEqual(true);
+    expect(result.validRows).toStrictEqual([
+        { field1: "a\r\naa", field2: "b\"b\"b", field3: "c,cc" },
+        { field1: "aaa", field2: "bbb", field3: "cc c" },
+        { field1: "aaa", field2: "bbb", field3: "c  cc" },
+        { field1: "aaa", field2: "", field3: "ccc" },
+        { field1: "aaa", field2: "", field3: "ccc" },
+    ]);
+})
+
+it('parse csv content with some restricted characters like line breaks (CRLF), double quotes, and commas, should be enclosed in double-quotes. custom "comma" ', () => {
+    const schema = z.object({
+        field1: zcsv.string(z.string().optional().default("")),
+        field2: zcsv.string(z.string().optional().default("")),
+        field3: zcsv.string(z.string().optional().default("")),
+    })
+
+    const csv = `field1;field2;field3
+\"a\r\naa\";\"b\"\"b\"\"b\";\"c;cc\"
+\"aaa\";\"bbb\";\"cc c\"
+aaa ; bbb; c  cc
+aaa;;ccc
+\"aaa\";\"\";\"ccc\"
+`
+
+    const result = parseCSVContent(csv, schema, {
+        comma: ";"
+    });
+    expect(result.header).toEqual(["field1", "field2", "field3"]);
+    expect(result.success).toEqual(true);
+    expect(result.validRows).toStrictEqual([
+        { field1: "a\r\naa", field2: "b\"b\"b", field3: "c;cc" },
+        { field1: "aaa", field2: "bbb", field3: "cc c" },
+        { field1: "aaa", field2: "bbb", field3: "c  cc" },
+        { field1: "aaa", field2: "", field3: "ccc" },
+        { field1: "aaa", field2: "", field3: "ccc" },
+    ]);
+})
+
+it('parse csv content with some restricted characters like line breaks (CRLF), double quotes, and commas, should be enclosed in double-quotes. custom "comma" ', () => {
+    const quote = "!";
+    const schema = z.object({
+        field1: zcsv.string(z.string().optional().default("")),
+        field2: zcsv.string(z.string().optional().default("")),
+        field3: zcsv.string(z.string().optional().default("")),
+    })
+
+    const csv = `field1;field2;field3
+${quote}TEST${quote};${quote}TEST${quote};${quote}TEST${quote}
+`
+
+    const result = parseCSVContent(csv, schema, {
+        quote: quote,
+        comma: ";"
+    });
+    expect(result.header).toEqual(["field1", "field2", "field3"]);
+    expect(result.success).toEqual(true);
+    expect(result.validRows).toStrictEqual([
+        { field1: "TEST", field2: "TEST", field3: "TEST" },
+
+    ]);
+})
+
+it('skip empty lines', () => {
+    const schema = z.object({
+        field1: zcsv.string(z.string().optional().default("")),
+        field2: zcsv.string(z.string().optional().default("")),
+        field3: zcsv.string(z.string().optional().default("")),
+    })
+
+    const csv = `field1,field2,field3\n\n\n\na,b,c\n\n\n\n\t\t\t\t`
+
+    const result = parseCSVContent(csv, schema, { skipEmptyLines: true });
+    expect(result.header).toEqual(["field1", "field2", "field3"]);
+    expect(result.success).toEqual(true);
+    expect(result.validRows).toStrictEqual([
+        { field1: "a", field2: "b", field3: "c" },
+    ]);
+}) 
