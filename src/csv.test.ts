@@ -398,7 +398,7 @@ describe("parse single row against schema", () => {
         const result = csv.map(row => parseRow(row, schema));
         expect(result[0].success).toEqual(true);
         //@ts-expect-error - when success is true, row is defined
-        expect(result[0].row!).toEqual({ name: "John", age: 20 });
+        expect(result[0].row).toEqual({ name: "John", age: 20 });
         expect(result[1].success).toEqual(true);
         //@ts-expect-error - when success is true, row is defined
         expect(result[1].row).toEqual({ name: "Doe", age: 30 });

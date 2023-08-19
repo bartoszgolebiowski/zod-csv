@@ -89,10 +89,16 @@ npm install zod-csv
 
 ## Parsing CSV
 
-### `parseCSVContent<T extends z.ZodType>(csvContent: string, schema: T): Result<T>`
+### `parseCSVContent<T extends z.ZodType>(csvContent: string, schema: T, options?: Options): ResultCSV<T>`
 
 Function to parse CSV data from a string. The first row of the CSV data is expected to be the header.
 ```ts
+type Options = {
+    comma?: ',' | ';' | '|' | '\t',
+    quote?: string,
+    skipEmptyLines?: boolean,
+}
+
 type ResultCSV<T extends z.ZodType> = {
     success: true,
     header: string[],
@@ -131,10 +137,15 @@ it('example usage string input', () => {
 });
 ```
 
-### `async parseCSV<T extends z.ZodType>(csv: File, schema: T): Promise<Result<T>>`
+### `async parseCSV<T extends z.ZodType>(csv: File, schema: T, options?: Options): Promise<ResultCSV<T>>`
 
 Function to parse CSV data from a File object. The first row of the CSV data is expected to be the header.
 ```ts
+type Options = {
+    comma?: ',' | ';' | '|' | '\t',
+    quote?: string,
+    skipEmptyLines?: boolean,
+}
 
 type ResultCSV<T extends z.ZodType> = {
     success: true,
@@ -181,11 +192,16 @@ it('example usage file input', ()=>{
 
 ```
 
-### `parseRow<T extends z.ZodType>(row: string, schema: T): ResultRow<T>`
+### `parseRow<T extends z.ZodType>(row: string, schema: T, options?: Options): ResultRow<T>`
 
 It can be used to parse a single row. It can be usefull when validating a stream of data.
 
 ```ts
+type Options = {
+    comma?: ',' | ';' | '|' | '\t',
+    quote?: string,
+    skipEmptyLines?: boolean,
+}
 
 type ResultRow<T extends z.ZodType> = {
     success: true,

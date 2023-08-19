@@ -1,6 +1,6 @@
 
 import { z } from "zod";
-import { Options, extractHeadersFromContent, extractRows } from "./parse";
+import { Options, extractHeadersFromContent as getHeadersFromContent, extractRows } from "./parse";
 
 const ERROR_CODES = {
     HEADER: {
@@ -30,16 +30,16 @@ const zodKeys = <T extends z.ZodTypeAny>(schema: T): string[] => {
         });
     }
     return [];
-};
+}; 
 
-const parseHeadersFromSchema = <T extends z.ZodTypeAny>(schema: T): string[] => {
+const getHeadersFromSchema = <T extends z.ZodTypeAny>(schema: T): string[] => {
     return zodKeys(schema).map(header => header.trim());
 }
 
 const JOINER = ", ";
 const getCSVHeaderErrors = <T extends z.ZodTypeAny>(csvContent: string, schema: T, options?: Options) => {
-    const expectedHeaders = parseHeadersFromSchema(schema)
-    const csvHeaders = extractHeadersFromContent(csvContent, options)
+    const expectedHeaders = getHeadersFromSchema(schema)
+    const csvHeaders = getHeadersFromContent(csvContent, options)
     if (!csvHeaders.length) {
         return {
             errorCode: ERROR_CODES.HEADER.MISSING_HEADER,
@@ -58,7 +58,7 @@ const getCSVHeaderErrors = <T extends z.ZodTypeAny>(csvContent: string, schema: 
 
 const getCSVBodyErrors = <T extends z.ZodTypeAny>(csvContent: string, schema: T, options?: Options) => {
     const validRows: z.infer<T>[] = [];
-    const rows = getRowsFromCSVRaw(csvContent, schema, options);
+    const rows = getRowsFromContent(csvContent, schema, options);
     const errors = rows.reduce((errors, row, index) => {
         const parsed = schema.safeParse(row);
         if (!parsed.success) {
@@ -90,8 +90,8 @@ const getCSVErrorsAndValidRows = <T extends z.ZodTypeAny>(csvContent: string, sc
     ] as const
 }
 
-const getRowsFromCSVRaw = <T extends z.ZodType>(csvContent: string, schema: T, options?: Options) => {
-    const headersFromSchema = parseHeadersFromSchema(schema)
+const getRowsFromContent = <T extends z.ZodType>(csvContent: string, schema: T, options?: Options) => {
+    const headersFromSchema = getHeadersFromSchema(schema)
     return extractRows(csvContent, options).map((cells) => {
         return headersFromSchema.reduce((row, header, index) => {
             let cell = cells[index];
@@ -137,8 +137,8 @@ export const parseCSVContent = <T extends z.ZodType>(csvContent: string, schema:
     if (errors) {
         return {
             success: false,
-            header: extractHeadersFromContent(csvContent, options),
-            allRows: getRowsFromCSVRaw(csvContent, schema, options),
+            header: getHeadersFromContent(csvContent, options),
+            allRows: getRowsFromContent(csvContent, schema, options),
             validRows,
             errors: errors as Extract<ResultCSV<T>, { status: false }>['errors']
         }
@@ -146,8 +146,8 @@ export const parseCSVContent = <T extends z.ZodType>(csvContent: string, schema:
 
     return {
         success: true,
-        header: extractHeadersFromContent(csvContent, options),
-        allRows: getRowsFromCSVRaw(csvContent, schema, options),
+        header: getHeadersFromContent(csvContent, options),
+        allRows: getRowsFromContent(csvContent, schema, options),
         validRows,
     }
 }
@@ -166,7 +166,7 @@ type ResultRow<T extends z.ZodType> = {
 }
 
 export const parseRow = <T extends z.ZodType>(row: string, schema: T, options?: Options): ResultRow<T> => {
-    const enrichedRow = `${parseHeadersFromSchema(schema)}\n${row}`
+    const enrichedRow = `${getHeadersFromSchema(schema)}\n${row}`
     const [validRows, errors] = getCSVErrorsAndValidRows(enrichedRow, schema, options);
 
     if (errors?.rows) {
