@@ -4,16 +4,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": {
-        "development": "./dist/zcsv.dev.mjs",
-        "production": "./dist/zcsv.mjs",
-        "default": "./dist/zcsv.mjs"
-      },
-      "require": {
-        "development": "./dist/zcsv.dev.cjs",
-        "production": "./dist/zcsv.cjs",
-        "default": "./dist/zcsv.cjs"
-      },
+      "import": "./dist/zcsv.mjs",
+      "require": "./dist/zcsv.cjs",
       "types": "./dist/index.d.ts"
     }
   },
