@@ -59,6 +59,44 @@ describe('test helper matchers', () => {
             const result = s.safeParse("value")
             expect(result.success).toBe(false)
         })
+
+        describe('email', () => {
+            it('should be invalid for empty string when using email validation', () => {
+                const s = zcsv.string(z.string().email());
+                const result = s.safeParse("")
+                expect(result.success).toBe(false)
+            })
+
+            it('should be invalid for non-email string', () => {
+                const s = zcsv.string(z.string().email());
+                const result = s.safeParse("not-an-email")
+                expect(result.success).toBe(false)
+            })
+
+            it('should be valid for correct email format', () => {
+                const s = zcsv.string(z.string().email());
+                const result = s.safeParse("test@example.com")
+                expect(result.success).toBe(true)
+                //@ts-expect-error we will reach this line only if success is true
+                expect(result.data).toEqual("test@example.com")
+            })
+
+            it('should be valid when email is optional and empty', () => {
+                const s = zcsv.string(z.string().email().optional());
+                const result = s.safeParse("")
+                expect(result.success).toBe(true)
+                //@ts-expect-error we will reach this line only if success is true
+                expect(result.data).toEqual(undefined)
+            })
+
+            it('should be valid when email is optional with default value', () => {
+                const s = zcsv.string(z.string().email().optional().default("default@example.com"));
+                const result = s.safeParse("")
+                expect(result.success).toBe(true)
+                //@ts-expect-error we will reach this line only if success is true
+                expect(result.data).toEqual("default@example.com")
+            })
+        })
     })
 
     describe('number', () => {
