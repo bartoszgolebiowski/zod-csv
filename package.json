@@ -2,16 +2,24 @@
   "name": "zod-csv",
   "version": "0.0.8",
   "type": "module",
-  "main": "./dist/zcsv.umd.cjs",
-  "module": "./dist/zcsv.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/zcsv.js",
-      "require": "./dist/zcsv.umd.cjs",
+      "import": {
+        "development": "./dist/zcsv.dev.mjs",
+        "production": "./dist/zcsv.mjs",
+        "default": "./dist/zcsv.mjs"
+      },
+      "require": {
+        "development": "./dist/zcsv.dev.cjs",
+        "production": "./dist/zcsv.cjs",
+        "default": "./dist/zcsv.cjs"
+      },
       "types": "./dist/index.d.ts"
     }
   },
+  "main": "./dist/zcsv.cjs",
+  "module": "./dist/zcsv.mjs",
+  "types": "./dist/index.d.ts",
   "keywords": [
     "zod",
     "csv",
@@ -29,10 +37,13 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "watch": "vitest --watch"
+    "watch": "vitest --watch",
+    "test:imports": "npm run test:esm && npm run test:cjs",
+    "test:esm": "node --test test-imports/node-esm-import.test.js",
+    "test:cjs": "node --test test-imports/node-cjs-require.test.cjs"
   },
   "peerDependencies": {
     "zod": "^3.11.x"
@@ -42,6 +53,7 @@
     "typescript": "^5.1.3",
     "vite": "^4.3.9",
     "vite-plugin-dts": "^2.3.0",
+    "vite-plugin-node-polyfills": "^0.23.0",
     "vitest": "^0.32.2",
     "zod": "^3.21.4"
   },
