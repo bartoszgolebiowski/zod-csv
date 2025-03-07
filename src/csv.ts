@@ -1,39 +1,15 @@
-
 import { z } from "zod";
 import { Options, extractHeadersFromContent as getHeadersFromContent, extractRows } from "./parse";
+import { getHeadersFromSchema } from "./csv-utils";
 
+/**
+ * Error codes used for CSV parsing operations
+ */
 const ERROR_CODES = {
     HEADER: {
         MISSING_HEADER: "MISSING_HEADER",
         MISSING_COLUMN: "MISSING_COLUMN",
     }
-}
-
-const zodKeys = <T extends z.ZodTypeAny>(schema: T): string[] => {
-    if (schema === null || schema === undefined) return [];
-    if (schema instanceof z.ZodNullable || schema instanceof z.ZodOptional) return zodKeys(schema.unwrap());
-    if (schema instanceof z.ZodArray) return zodKeys(schema.element);
-    if (schema instanceof z.ZodObject) {
-        const entries = Object.entries(schema.shape);
-        return entries.flatMap(([key, value]) => {
-            const nested = value instanceof z.ZodType ? zodKeys(value).map(subKey => `${key}.${subKey}`) : [];
-            return nested.length ? nested : key;
-        });
-    }
-    if (schema instanceof z.ZodEffects) {
-        const innerType = schema.innerType();
-        if (!innerType.shape) return zodKeys(innerType);
-        const entries = Object.entries(innerType.shape);
-        return entries.flatMap(([key, value]) => {
-            const nested = value instanceof z.ZodType ? zodKeys(value).map(subKey => `${key}.${subKey}`) : [];
-            return nested.length ? nested : key;
-        });
-    }
-    return [];
-}; 
-
-const getHeadersFromSchema = <T extends z.ZodTypeAny>(schema: T): string[] => {
-    return zodKeys(schema).map(header => header.trim());
 }
 
 const JOINER = ", ";
@@ -131,6 +107,20 @@ type ResultCSV<T extends z.ZodType> = {
     }
 }
 
+/**
+ * Parses CSV content against a Zod schema
+ * 
+ * @template T - The Zod schema type
+ * @param {string} csvContent - The CSV content to parse as a string
+ * @param {T} schema - The Zod schema to validate against
+ * @param {Options} [options] - Optional configuration for CSV parsing
+ * @returns {ResultCSV<T>} Object containing parsing results including:
+ *   - success: Whether parsing was completely successful
+ *   - header: The detected CSV headers
+ *   - allRows: All rows from the CSV (valid and invalid)
+ *   - validRows: Only the rows that passed validation
+ *   - errors: When success is false, contains header and/or row validation errors
+ */
 export const parseCSVContent = <T extends z.ZodType>(csvContent: string, schema: T, options?: Options): ResultCSV<T> => {
     const [validRows, errors] = getCSVErrorsAndValidRows(csvContent, schema, options);
 
@@ -152,6 +142,20 @@ export const parseCSVContent = <T extends z.ZodType>(csvContent: string, schema:
     }
 }
 
+/**
+ * Parses a CSV file against a Zod schema
+ * 
+ * @template T - The Zod schema type
+ * @param {File} csv - The CSV file to parse
+ * @param {T} schema - The Zod schema to validate against
+ * @param {Options} [options] - Optional configuration for CSV parsing
+ * @returns {Promise<ResultCSV<T>>} A promise resolving to an object containing parsing results including:
+ *   - success: Whether parsing was completely successful
+ *   - header: The detected CSV headers
+ *   - allRows: All rows from the CSV (valid and invalid)
+ *   - validRows: Only the rows that passed validation
+ *   - errors: When success is false, contains header and/or row validation errors
+ */
 export const parseCSV = async <T extends z.ZodType>(csv: File, schema: T, options?: Options): Promise<ResultCSV<T>> => {
     const csvContent = await getCSVContent(csv);
     return parseCSVContent(csvContent, schema, options)
@@ -165,6 +169,17 @@ type ResultRow<T extends z.ZodType> = {
     errors: z.ZodError<T>[]
 }
 
+/**
+ * Parses a single CSV row against a Zod schema
+ * 
+ * @template T - The Zod schema type
+ * @param {string} row - The CSV row content as a string
+ * @param {T} schema - The Zod schema to validate against
+ * @param {Options} [options] - Optional configuration for CSV parsing
+ * @returns {ResultRow<T>} Object containing parsing results including:
+ *   - When successful: { success: true, row: <validated data> }
+ *   - When unsuccessful: { success: false, errors: <validation errors> }
+ */
 export const parseRow = <T extends z.ZodType>(row: string, schema: T, options?: Options): ResultRow<T> => {
     const enrichedRow = `${getHeadersFromSchema(schema)}\n${row}`
     const [validRows, errors] = getCSVErrorsAndValidRows(enrichedRow, schema, options);
@@ -181,3 +196,6 @@ export const parseRow = <T extends z.ZodType>(row: string, schema: T, options?: 
         row: validRows[0]
     }
 }
+
+// Export ERROR_CODES to be used elsewhere
+export { ERROR_CODES };

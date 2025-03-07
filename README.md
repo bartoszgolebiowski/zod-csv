@@ -6,6 +6,25 @@ The main goal of this library is to provide a simple way to validate CSV data us
 
 The content from the CSV file is as a string. This library parses this content, validates it against the provided schema, and returns the result. First row of the CSV data is expected to be the header. The result contains the header, all rows, valid rows, and errors.
 
+## Table of Contents
+- [zod-csv](#zod-csv)
+- [Example](#example)
+- [Installation](#installation)
+- [API](#api)
+    - [Parsing CSV](#parsing-csv)
+    - [Schema Helpers](#schema-helpers)
+        - [zcsv.string()](#zcsvstring)
+        - [zcsv.number()](#zcsvnumber)
+        - [zcsv.boolean()](#zcsvboolean)
+        - [zcsv.date()](#zcsvdate)
+        - [zcsv.enum()](#zcsvenum)
+- [Stream Processing](#stream-processing)
+    - [Example with Node.js Streams](#example-with-nodejs-streams)
+    - [Example with http request](#example-with-http-request)
+- [Errors](#errors)
+    - [Header Errors](#header-errors)
+    - [Row Errors](#row-errors)
+    
 # Example
 
 ```ts
@@ -82,7 +101,9 @@ it("file example", async () => {
 # Installation
 
 ```bash
-npm install zod-csv
+npm install zod-csv 
+# peer dependency
+npm install zod
 ```
 
 # API
@@ -163,7 +184,7 @@ type ResultCSV<T extends z.ZodType> = {
     }
 }
 
-it('example usage file input', ()=>{
+it('example usage file input', ()=> {
     const csv = new File(
       [`name,age\nJohn,20\nDoe,30`;],
       "test.csv",
@@ -189,12 +210,11 @@ it('example usage file input', ()=>{
         expect(result.errors).toBeDefined()
     }
 });
-
 ```
 
 ### `parseRow<T extends z.ZodType>(row: string, schema: T, options?: Options): ResultRow<T>`
 
-It can be used to parse a single row. It can be usefull when validating a stream of data.
+It can be used to parse a single row. It can be useful when validating a stream of data.
 
 ```ts
 type Options = {
@@ -237,6 +257,7 @@ it('should return errors when row is not valid', () => {
     expect(result[1].errors[0]).toBeInstanceOf(ZodError)
 })
 ```
+
 ## Schema Helpers
 
 ### `zcsv.string()`
@@ -249,7 +270,7 @@ it('when no schema provided, the value is required', () => {
     expect(result.success).toBe(false)
 })
 
-it('we can also enchance the schema with other zod helpers', () => {
+it('we can also enhance the schema with other zod helpers', () => {
     const s = zcsv.string(z.string().optional().default("default value"));
     const result = s.safeParse("")
     expect(result.success).toBe(true)
@@ -267,7 +288,7 @@ it('when no schema provided, the value is required', () => {
     expect(result.success).toBe(false)
 })
 
-it('we can also enchance the schema with other zod helpers', () => {
+it('we can also enhance the schema with other zod helpers', () => {
     const s = zcsv.number(z.number().optional().default(0));
     const result = s.safeParse("")
     expect(result.success).toBe(true)
@@ -292,7 +313,7 @@ it('when no schema provided, the value is required', () => {
     expect(result.success).toBe(false)
 })
 
-it('we can also enchance the schema with other zod helpers', () => {
+it('we can also enhance the schema with other zod helpers', () => {
     const s = zcsv.boolean(z.boolean().optional().default(false));
     const result = s.safeParse("")
     expect(result.success).toBe(true)
@@ -317,7 +338,7 @@ it('when no schema provided, the value is required', () => {
     expect(result.success).toBe(false)
 })
 
-it('we can also enchance the schema with other zod helpers', () => {
+it('we can also enhance the schema with other zod helpers', () => {
     const s = zcsv.date(z.date().optional().default(new Date()));
     const result = s.safeParse("")
     expect(result.success).toBe(true)
@@ -350,7 +371,106 @@ it('default behavior is to parse the value as a enum', () => {
 })
 ```
 
+# Stream Processing
 
+zod-csv can validate CSV data in a streaming fashion, making it well suited for processing large files without loading everything into memory. Two common approaches are demonstrated below: one using Node.js file streams (fs.createReadStream) and another using the Web Streams API.
+
+## Example with Node.js Streams
+
+In this example the CSV file is read as a stream using fs.createReadStream. The contents are processed chunk by chunk by writing each chunk to a CSV processor created with processCSVInChunks:
+
+```ts
+import { zcsv, processCSVInChunks } from "zod-csv";
+import { z } from "zod";
+import fs from "node:fs";
+
+async function processCSVFile() {
+    const schema = z.object({
+        name: zcsv.string(),
+        email: zcsv.string(z.string().email()),
+        signupDate: zcsv.date(),
+    });
+    const processor = processCSVInChunks(schema);
+    const validRows: z.infer<typeof schema>[] = [];
+    let headers: string[] = [];
+
+    // Register event listeners.
+    processor.on("data", (data) => {
+        validRows.push(data);
+    });
+
+    processor.on("headers", (h) => {
+        headers = h;
+    });
+
+    let chunksQuantity = 0;
+    const stream = fs.createReadStream("filepath", { encoding: "utf-8" });
+
+    // Helper to convert Buffer input to string.
+    const toString = (input: string | Buffer): string => {
+        return typeof input === "string" ? input : input.toString("utf8");
+    };
+
+    await new Promise<void>((resolve, reject) => {
+        stream.on("data", (chunk) => {
+            chunksQuantity++;
+            processor.write(toString(chunk));
+        });
+        stream.on("end", () => {
+            processor.emit("end");
+            resolve();
+        });
+    });
+}
+```
+
+## Example with http request
+
+In this example the CSV file is read as a stream using the Web Streams API. The contents are processed chunk by chunk by writing each chunk to a CSV processor created with processCSVInChunks:
+
+```ts
+import { zcsv, processCSVInChunks } from "zod-csv";
+import { z } from "zod";
+
+async function processCSVFromUrl(url: string) {
+    const schema = z.object({
+        name: zcsv.string(),
+        email: zcsv.string(z.string().email()),
+        signupDate: zcsv.date(),
+    });
+
+    const processor = processCSVInChunks(schema);
+    const validRows: z.infer<typeof schema>[] = [];
+    let headers: string[] = [];
+
+    processor.on("data", (data) => {
+        validRows.push(data);
+    });
+    processor.on("headers", (h) => {
+        headers = h;
+    });
+
+    const response = await fetch(url);
+    if (!response.body) {
+        throw new Error("Response body is missing");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let chunksQuantity = 0;
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+            processor.emit("end");
+            break;
+        }
+        const chunk = decoder.decode(value);
+        chunksQuantity++;
+        processor.write(chunk);
+    }
+}
+
+```
 # Errors
 
 ## Header Errors
@@ -385,10 +505,66 @@ Doe,30`;
 
 ```
 
+
+## Example with http request
+
+```ts
+import { zcsv, processCSVInChunks } from "zod-csv";
+import { z } from "zod";
+
+async function processCSVFromUrl(url: string) {
+    const schema = z.object({
+        name: zcsv.string(),
+        email: zcsv.string(z.string().email()),
+        signupDate: zcsv.date(),
+    });
+
+    const processor = processCSVInChunks(schema);
+    const validRows: z.infer<typeof schema>[] = [];
+    const errors: any[] = [];
+    let headers: string[] = [];
+
+    processor.on("data", (data) => {
+        validRows.push(data);
+    });
+    processor.on("error", (error) => {
+        errors.push(error);
+    });
+    processor.on("headers", (h) => {
+        headers = h;
+    });
+
+    const response = await fetch(url);
+    if (!response.body) {
+        throw new Error("Response body is missing");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let chunksQuantity = 0;
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+            processor.emit("end");
+            break;
+        }
+        const chunk = decoder.decode(value);
+        chunksQuantity++;
+        processor.write(chunk);
+    }
+
+    // Allow time for the processor to handle all events.
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    console.log("Headers:", headers);
+    console.log("Valid Rows:", validRows.length);
+    console.log("Chunks Quantity:", chunksQuantity);
+    console.log("Errors:", errors.length);
+}
+```
 ## Row Errors
 
 ### `errors.rows['row_number']`
-
 
 ```ts
 it("example error handling for invalid data", () => {

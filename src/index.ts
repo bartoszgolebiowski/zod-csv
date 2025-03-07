@@ -6,5 +6,6 @@ const zcsv = {
 }
 
 export * from './csv';
+export * from './stream';
 export { zcsv };
 
