@@ -578,4 +578,4 @@ it('skip empty lines', () => {
     expect(result.validRows).toStrictEqual([
         { field1: "a", field2: "b", field3: "c" },
     ]);
-}) 
+})
