@@ -7,7 +7,6 @@ import path from "node:path";
 import fs from "node:fs";
 
 describe("Stream Processing Integration", () => {
-
     const http = new TestServer()
 
     beforeAll(async () => {

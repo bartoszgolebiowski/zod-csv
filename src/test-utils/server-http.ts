@@ -17,20 +17,10 @@ export class TestServer {
 
     private createServer(): http.Server {
         return http.createServer((req, res) => {
-            if (req.method === 'GET') {
-                fs.readFile(csvFilePath, (err, data) => {
-                    if (err) {
-                        res.writeHead(404, { 'Content-Type': 'text/plain' });
-                        res.end('CSV file not found.');
-                        return;
-                    }
-                    res.writeHead(200, { 'Content-Type': 'text/csv' });
-                    res.end(data);
-                });
-            } else {
-                res.writeHead(405, { 'Content-Type': 'text/plain' });
-                res.end('Method Not Allowed');
-            }
+            fs.readFile(csvFilePath, (err, data) => {
+                res.writeHead(200, { 'Content-Type': 'text/csv' });
+                res.end(data);
+            });
         });
     }
 
