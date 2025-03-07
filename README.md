@@ -411,16 +411,15 @@ async function processCSVFile() {
         return typeof input === "string" ? input : input.toString("utf8");
     };
 
-    await new Promise<void>((resolve, reject) => {
-        stream.on("data", (chunk) => {
-            chunksQuantity++;
-            processor.write(toString(chunk));
-        });
-        stream.on("end", () => {
-            processor.emit("end");
-            resolve();
-        });
+    stream.on("data", (chunk) => {
+        chunksQuantity++;
+        processor.write(toString(chunk));
     });
+
+    stream.on("end", () => {
+        processor.emit("end");
+    });
+    
 }
 ```
 
